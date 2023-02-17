@@ -1,4 +1,8 @@
+mod config;
+
+use std::fs;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::config::{PlumbingItemConfig, PortPlumberConfig};
 
 const addresses: [&str; 2] = [
     "127.0.0.1:1234",
@@ -6,16 +10,20 @@ const addresses: [&str; 2] = [
 ];
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
-    futures::future::try_join_all(addresses.iter().map(|addr| listen_address(addr))).await.expect("Error listening traffic");
+async fn main() -> anyhow::Result<()> {
+    let config_content = fs::read_to_string("config/portplumber.toml")?;
+    let config: PortPlumberConfig = toml::from_str(&config_content)?;
+
+    futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await.expect("Error listening traffic");
+    Ok(())
 }
 
-async fn listen_address(addr: impl ToSocketAddrs) -> anyhow::Result<()> {
+async fn listen_address(addr: impl ToSocketAddrs, conf: PlumbingItemConfig) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     loop {
         let (stream, _socket) = listener.accept().await?;
         tokio::spawn(async move {
-            let res = redirect_stream(stream, "127.0.0.1:80").await;
+            let res = redirect_stream(stream, conf.target).await;
         });
     }
 }
