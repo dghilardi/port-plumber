@@ -1,9 +1,11 @@
 mod config;
 mod utils;
 mod runner;
+mod cmd_resource;
 
 use std::fs;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::cmd_resource::CmdResource;
 use crate::config::{PlumbingItemConfig, PortPlumberConfig};
 use crate::runner::CmdRunner;
 
@@ -18,17 +20,10 @@ async fn main() -> anyhow::Result<()> {
 
 async fn listen_address(addr: impl ToSocketAddrs, conf: PlumbingItemConfig) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
-    let mut resource: Option<CmdRunner> = None;
+    let mut resource = CmdResource::try_from(conf.resource.as_ref())?;
     loop {
         let (stream, _socket) = listener.accept().await?;
-        if let Some(ref resource_conf) = conf.resource {
-            if resource.is_none() {
-                let mut runner = CmdRunner::build(&resource_conf.setup.command, &resource_conf.setup.args[..], std::env::current_dir().unwrap())?;
-                runner.run()?;
-                resource = Some(runner);
-
-            }
-        }
+        resource.ensure_running().await?;
         tokio::spawn(async move {
             let res = redirect_stream(stream, conf.target).await;
         });
