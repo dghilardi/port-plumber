@@ -3,5 +3,5 @@ target = "127.0.0.1:80"
 
 [plumbing."127.0.0.1:23456"]
 target = "127.0.0.1:2048"
-resource.setup = { command = "http-server", args = ["-h", "127.0.0.1", "-p", "2048"] }
+resource.setup = { command = "http-server", args = ["-h", "127.0.0.1", "-p", "2048", "-v"] }
 resource.warmup_millis = 5000
