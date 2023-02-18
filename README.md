@@ -32,7 +32,7 @@ To achieve this, the following file needs to be created:
 
 `$HOME/.config/systemd/user/port-plumber.service`
 
-```toml
+```ini
 [Unit]
 Description=Launch port-plumber
 
