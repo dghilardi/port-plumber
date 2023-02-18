@@ -1,8 +1,11 @@
 use std::fmt::Display;
 use std::fs;
+use std::path::PathBuf;
 
+use clap::Parser;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
+use crate::args::PortPlumberArgs;
 use crate::cmd_resource::CmdResource;
 use crate::config::{PlumbingItemConfig, PortPlumberConfig};
 
@@ -10,15 +13,36 @@ mod config;
 mod utils;
 mod runner;
 mod cmd_resource;
+mod args;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let config_content = fs::read_to_string("config/portplumber.toml")?;
+    let args: PortPlumberArgs = PortPlumberArgs::parse();
+
+    let config_file_path = if let Some(path) = args.config {
+        path
+    } else {
+        config_from_user_dir()?
+    };
+
+    let config_content = fs::read_to_string(config_file_path)?;
     let config: PortPlumberConfig = toml::from_str(&config_content)?;
 
     futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await?;
     Ok(())
+}
+
+fn config_from_user_dir() -> anyhow::Result<PathBuf> {
+    let Some(config_base_path) = dirs::config_dir() else {
+        anyhow::bail!("Could not find os config dir")
+    };
+    let config_file_path = config_base_path.join("portplumber/config.toml");
+    if !config_file_path.is_file() {
+        anyhow::bail!("No config file was foud at {config_file_path:?}");
+    } else {
+        Ok(config_file_path)
+    }
 }
 
 async fn listen_address(addr: impl ToSocketAddrs + Display, conf: PlumbingItemConfig) -> anyhow::Result<()> {
