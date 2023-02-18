@@ -4,6 +4,10 @@ Utility bind ports with initialization commands
 
 ## Configuration
 
+The following configuration file must be created:
+
+`$HOME/.config/portplumber/config.toml`
+
 ```toml
 # Bind 127.0.0.1:12345 to 127.0.0.1:80
 [plumbing."127.0.0.1:12345"]
