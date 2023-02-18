@@ -1,12 +1,16 @@
 use std::fmt::Display;
 use std::fs;
 use std::future::Future;
+use std::io::Error;
 use std::ops::Add;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use anyhow::anyhow;
 
 use clap::Parser;
+use futures::future::Either;
 use futures::lock::Mutex;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
@@ -93,9 +97,14 @@ async fn redirect_stream(incoming: TcpStream, addr: impl ToSocketAddrs) -> anyho
     let outgoing = TcpStream::connect(addr).await?;
     let (mut in_reader, mut in_writer) = incoming.into_split();
     let (mut out_reader, mut out_writer) = outgoing.into_split();
-    futures::future::try_join(
-    tokio::io::copy(&mut in_reader, &mut out_writer),
-    tokio::io::copy(&mut out_reader, &mut in_writer),
-    ).await?;
+    futures::future::try_select(
+    Box::pin(tokio::io::copy(&mut in_reader, &mut out_writer)),
+    Box::pin(tokio::io::copy(&mut out_reader, &mut in_writer)),
+    )
+        .await
+        .map_err(|e| match e {
+            Either::Left((err, _fut)) => err,
+            Either::Right((err, _fut)) => err,
+        })?;
     Ok(())
 }
