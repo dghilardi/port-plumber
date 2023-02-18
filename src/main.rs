@@ -1,19 +1,26 @@
 use std::fmt::Display;
 use std::fs;
+use std::future::Future;
+use std::ops::Add;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 
 use clap::Parser;
+use futures::lock::Mutex;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 use crate::args::PortPlumberArgs;
 use crate::cmd_resource::CmdResource;
 use crate::config::{PlumbingItemConfig, PortPlumberConfig};
+use crate::connections_counter::ConnectionCounter;
 
 mod config;
 mod utils;
 mod runner;
 mod cmd_resource;
 mod args;
+mod connections_counter;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -48,14 +55,38 @@ fn config_from_user_dir() -> anyhow::Result<PathBuf> {
 async fn listen_address(addr: impl ToSocketAddrs + Display, conf: PlumbingItemConfig) -> anyhow::Result<()> {
     log::info!("Starting listener for address {addr}");
     let listener = TcpListener::bind(addr).await?;
+
+    let mut counter = Arc::new(Mutex::new(ConnectionCounter::new()));
     let mut resource = CmdResource::try_from(conf.resource.as_ref())?;
+
     loop {
-        let (stream, _socket) = listener.accept().await?;
+        let Some((stream, _)) = timeout(Duration::from_secs(30), listener.accept()).await? else {
+            if let Some(ts) = counter.lock().await.no_connections_since() {
+                if ts.add(Duration::from_secs(600)) < SystemTime::now() {
+                    resource.ensure_stopped()?;
+                }
+            }
+            continue;
+        };
+        {
+            let mut counter_guard = counter.lock().await;
+            counter_guard.add_connection();
+        }
         resource.ensure_running().await?;
+        let clouned_counter_mtx = counter.clone();
         tokio::spawn(async move {
             let res = redirect_stream(stream, conf.target).await;
+            let mut counter_guard = clouned_counter_mtx.lock().await;
+            counter_guard.rem_connection();
         });
     }
+}
+
+async fn timeout<F, O, E>(duration: Duration, future: F) -> Result<Option<O>, E>
+    where
+        F: Future<Output=Result<O, E>>,
+{
+    tokio::time::timeout(duration, future).await.ok().transpose()
 }
 
 async fn redirect_stream(incoming: TcpStream, addr: impl ToSocketAddrs) -> anyhow::Result<()> {

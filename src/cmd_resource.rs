@@ -30,9 +30,22 @@ impl CmdResource {
             return Ok(())
         };
         if !runner.is_running()? {
+            log::debug!("spawning command");
             runner.start()?;
             tokio::time::sleep(warmup.clone()).await;
             Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn ensure_stopped(&mut self) -> anyhow::Result<()> {
+        let Self::Command { runner, warmup } = self else {
+            return Ok(())
+        };
+        if runner.is_running()? {
+            log::debug!("stopping command");
+            runner.stop()
         } else {
             Ok(())
         }
