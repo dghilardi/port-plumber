@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.69"
+env_logger = "0.10.0"
 futures = "0.3.26"
+log = "0.4.17"
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.25.0", features = ["macros", "rt", "io-util", "time", "net"] }
 toml = "0.7.2"

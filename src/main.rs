@@ -1,24 +1,28 @@
+use std::fmt::Display;
+use std::fs;
+
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+
+use crate::cmd_resource::CmdResource;
+use crate::config::{PlumbingItemConfig, PortPlumberConfig};
+
 mod config;
 mod utils;
 mod runner;
 mod cmd_resource;
 
-use std::fs;
-use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use crate::cmd_resource::CmdResource;
-use crate::config::{PlumbingItemConfig, PortPlumberConfig};
-use crate::runner::CmdRunner;
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    env_logger::init();
     let config_content = fs::read_to_string("config/portplumber.toml")?;
     let config: PortPlumberConfig = toml::from_str(&config_content)?;
 
-    futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await.expect("Error listening traffic");
+    futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await?;
     Ok(())
 }
 
-async fn listen_address(addr: impl ToSocketAddrs, conf: PlumbingItemConfig) -> anyhow::Result<()> {
+async fn listen_address(addr: impl ToSocketAddrs + Display, conf: PlumbingItemConfig) -> anyhow::Result<()> {
+    log::info!("Starting listener for address {addr}");
     let listener = TcpListener::bind(addr).await?;
     let mut resource = CmdResource::try_from(conf.resource.as_ref())?;
     loop {
