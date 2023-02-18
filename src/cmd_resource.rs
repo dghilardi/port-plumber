@@ -1,5 +1,6 @@
 use std::time::Duration;
-use crate::config::{CommandConfig, ResourceConfig};
+
+use crate::config::ResourceConfig;
 use crate::runner::CmdRunner;
 
 pub enum CmdResource {
@@ -32,7 +33,7 @@ impl CmdResource {
         if !runner.is_running()? {
             log::debug!("spawning command");
             runner.start()?;
-            tokio::time::sleep(warmup.clone()).await;
+            tokio::time::sleep(*warmup).await;
             Ok(())
         } else {
             Ok(())
@@ -40,7 +41,7 @@ impl CmdResource {
     }
 
     pub fn ensure_stopped(&mut self) -> anyhow::Result<()> {
-        let Self::Command { runner, warmup } = self else {
+        let Self::Command { runner, .. } = self else {
             return Ok(())
         };
         if runner.is_running()? {

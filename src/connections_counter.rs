@@ -34,7 +34,7 @@ impl ConnectionCounter {
     pub fn no_connections_since(&self) -> Option<SystemTime> {
         match &self.state {
             CounterState::HasConnections { .. } => None,
-            CounterState::NoConnections { since } => Some(since.clone()),
+            CounterState::NoConnections { since } => Some(*since),
         }
     }
 }

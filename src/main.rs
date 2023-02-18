@@ -1,13 +1,10 @@
 use std::fmt::Display;
 use std::fs;
 use std::future::Future;
-use std::io::Error;
 use std::ops::Add;
 use std::path::PathBuf;
-use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use anyhow::anyhow;
 
 use clap::Parser;
 use futures::future::Either;
@@ -60,7 +57,7 @@ async fn listen_address(addr: impl ToSocketAddrs + Display, conf: PlumbingItemCo
     log::info!("Starting listener for address {addr}");
     let listener = TcpListener::bind(addr).await?;
 
-    let mut counter = Arc::new(Mutex::new(ConnectionCounter::new()));
+    let counter = Arc::new(Mutex::new(ConnectionCounter::new()));
     let mut resource = CmdResource::try_from(conf.resource.as_ref())?;
 
     loop {
@@ -80,6 +77,9 @@ async fn listen_address(addr: impl ToSocketAddrs + Display, conf: PlumbingItemCo
         let clouned_counter_mtx = counter.clone();
         tokio::spawn(async move {
             let res = redirect_stream(stream, conf.target).await;
+            if let Err(err) = res {
+                log::error!("Error processing stream - {err}");
+            }
             let mut counter_guard = clouned_counter_mtx.lock().await;
             counter_guard.rem_connection();
         });

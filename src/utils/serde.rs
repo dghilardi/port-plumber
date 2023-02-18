@@ -1,6 +1,5 @@
 use std::convert::Infallible;
 use std::fmt;
-use std::fmt::Write;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use serde::{de, Deserialize, Deserializer};

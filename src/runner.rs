@@ -21,18 +21,8 @@ impl CmdRunner {
         })
     }
 
-    pub fn run(&mut self) -> Result<()> {
-        let mut process = self.command.spawn()?;
-        let exit_status = process.wait()?;
-        if exit_status.success() {
-            Ok(())
-        } else {
-            anyhow::bail!("process exited with {exit_status}")
-        }
-    }
-
     pub fn start(&mut self) -> Result<()> {
-        let mut process = self.command.spawn()?;
+        let process = self.command.spawn()?;
         self.process = Some(process);
         Ok(())
     }
