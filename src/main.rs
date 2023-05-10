@@ -10,6 +10,7 @@ use clap::Parser;
 use futures::future::Either;
 use futures::lock::Mutex;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::api::build_server;
 
 use crate::args::PortPlumberArgs;
 use crate::cmd_resource::CmdResource;
@@ -22,6 +23,7 @@ mod runner;
 mod cmd_resource;
 mod args;
 mod connections_counter;
+mod api;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -36,6 +38,11 @@ async fn main() -> anyhow::Result<()> {
 
     let config_content = fs::read_to_string(config_file_path)?;
     let config: PortPlumberConfig = toml::from_str(&config_content)?;
+
+    if let Some(ref socket) = config.socket {
+        let server = build_server(socket)?;
+        tokio::spawn(server);
+    }
 
     futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await?;
     Ok(())

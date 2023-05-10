@@ -8,6 +8,7 @@ use crate::utils::serde::string_or_struct;
 
 #[derive(Deserialize)]
 pub struct PortPlumberConfig {
+    pub socket: Option<PathBuf>,
     pub plumbing: BTreeMap<SocketAddr, PlumbingItemConfig>
 }
 

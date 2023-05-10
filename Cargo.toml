@@ -11,10 +11,12 @@ readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.69"
+axum = "0.6.18"
 clap = { version = "4.1.6", features = ["derive"] }
 dirs = "4.0.0"
 env_logger = "0.10.0"
 futures = "0.3.26"
+hyperlocal = "0.8.0"
 log = "0.4.17"
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.25.0", features = ["macros", "rt", "io-util", "time", "net"] }
