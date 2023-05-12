@@ -594,6 +594,7 @@ dependencies = [
  "hyperlocal",
  "log",
  "serde",
+ "serde_json",
  "tokio",
  "toml",
 ]

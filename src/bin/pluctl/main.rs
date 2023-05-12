@@ -1,20 +1,24 @@
 use clap::Parser;
 use hyper::Client;
 use hyperlocal::{UnixClientExt, Uri};
+use port_plumber::api::Endpoint;
 use crate::args::{Commands, PluCtlArgs};
+use crate::client::SimpleRest;
 
 mod args;
+mod client;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     let args: PluCtlArgs = PluCtlArgs::parse();
 
-    let client = Client::unix();
+    let client = SimpleRest::from(Client::unix());
     match args.subcommand {
         Commands::List => {
-            let res = client.get(Uri::new(args.path, "/list").into()).await?;
+            let res: Vec<Endpoint> = client.get(Uri::new(args.path, "/list")).await?;
             println!("{res:?}");
         }
     }
     Ok(())
 }
+
