@@ -1,3 +1,5 @@
+socket = "/run/port-plumber/cmd.sock"
+
 [plumbing."127.0.0.1:12345"]
 target = "127.0.0.1:80"
 

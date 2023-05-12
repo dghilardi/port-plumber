@@ -5,6 +5,7 @@ use std::ops::Add;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use anyhow::Context;
 
 use clap::Parser;
 use futures::future::Either;
@@ -36,12 +37,21 @@ async fn main() -> anyhow::Result<()> {
         config_from_user_dir()?
     };
 
-    let config_content = fs::read_to_string(config_file_path)?;
-    let config: PortPlumberConfig = toml::from_str(&config_content)?;
+    let config_content = fs::read_to_string(config_file_path)
+        .context("Error loading config file")?;
+    let config: PortPlumberConfig = toml::from_str(&config_content)
+        .context("Error parsing config file")?;
 
     if let Some(ref socket) = config.socket {
-        let server = build_server(socket)?;
-        tokio::spawn(server);
+        log::debug!("Starting socket server");
+        let server = build_server(socket)
+            .context("Error building server")?;
+        tokio::spawn(async move {
+            let out = server.await;
+            if let Err(err) = out {
+                log::error!("Error during socket server execution - {err}");
+            }
+        });
     }
 
     futures::future::try_join_all(config.plumbing.into_iter().map(|(addr, conf)| listen_address(addr, conf))).await?;

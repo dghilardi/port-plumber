@@ -590,6 +590,7 @@ dependencies = [
  "dirs",
  "env_logger",
  "futures",
+ "hyper",
  "hyperlocal",
  "log",
  "serde",
