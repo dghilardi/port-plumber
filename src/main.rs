@@ -17,6 +17,7 @@ use crate::args::PortPlumberArgs;
 use crate::cmd_resource::CmdResource;
 use crate::config::{PlumbingItemConfig, PortPlumberConfig};
 use crate::connections_counter::ConnectionCounter;
+use crate::plumber::Plumber;
 
 mod config;
 mod utils;
@@ -25,6 +26,7 @@ mod cmd_resource;
 mod args;
 mod connections_counter;
 mod api;
+mod plumber;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -42,9 +44,11 @@ async fn main() -> anyhow::Result<()> {
     let config: PortPlumberConfig = toml::from_str(&config_content)
         .context("Error parsing config file")?;
 
+    let plumber = Plumber::new();
+
     if let Some(ref socket) = config.socket {
         log::debug!("Starting socket server");
-        let server = build_server(socket)
+        let server = build_server(socket, plumber.clone())
             .context("Error building server")?;
         tokio::spawn(async move {
             let out = server.await;

@@ -15,4 +15,5 @@ pub struct PluCtlArgs {
 pub enum Commands {
     /// List current mappings
     List,
+    Resolve { name: String }
 }
