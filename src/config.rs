@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::convert::Infallible;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
 use serde::Deserialize;
@@ -9,13 +9,33 @@ use crate::utils::serde::string_or_struct;
 #[derive(Deserialize)]
 pub struct PortPlumberConfig {
     pub socket: Option<PathBuf>,
-    pub plumbing: BTreeMap<SocketAddr, PlumbingItemConfig>
+    pub plumbing: BTreeMap<String, PlumbingItemConfig>,
 }
 
 #[derive(Deserialize)]
-pub struct PlumbingItemConfig {
+#[serde(tag = "mode")]
+pub enum PlumbingItemConfig {
+    Addr(SocketConf<AddrPlumbingConfig>),
+    Name(SocketConf<NamePlumbingConfig>),
+}
+
+#[derive(Deserialize)]
+pub struct SocketConf<T> {
+    pub sockets: BTreeMap<String, T>
+}
+
+#[derive(Deserialize)]
+pub struct AddrPlumbingConfig {
+    pub source: u16,
     pub target: SocketAddr,
     pub resource: Option<ResourceConfig>,
+}
+
+#[derive(Deserialize)]
+pub struct NamePlumbingConfig {
+    pub source: u16,
+    pub target: u16,
+    pub resource: ResourceConfig,
 }
 
 #[derive(Deserialize)]

@@ -1,9 +1,17 @@
 socket = "/run/port-plumber/cmd.sock"
 
-[plumbing."127.0.0.1:12345"]
-target = "127.0.0.1:80"
+[plumbing."127.0.0.1"]
+mode = "Addr"
+sockets.12345.source = 12345
+sockets.12345.target = "127.0.0.1:80"
 
-[plumbing."127.0.0.1:23456"]
-target = "127.0.0.1:2048"
-resource.setup = { command = "http-server", args = ["-h", "127.0.0.1", "-p", "2048", "-v"] }
-resource.warmup_millis = 5000
+sockets.23456.source = 23456
+sockets.23456.target = "127.0.0.1:2048"
+sockets.23456.resource.setup = { command = "http-server", args = ["-h", "127.0.0.1", "-p", "2048", "-v"] }
+sockets.23456.resource.warmup_millis = 5000
+
+[plumbing."preprod.svc.lo"]
+mode = "Name"
+sockets.8080.source = 8080
+sockets.8080.target = 8080
+sockets.8080.resource.setup = { command = "echo", args = ["{{url.parts.3}}"] }
