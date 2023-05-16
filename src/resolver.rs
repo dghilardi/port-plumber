@@ -25,6 +25,10 @@ impl NameResolver {
             return None;
         };
 
+        for conf in &socket_conf.sockets {
+
+        }
+
         let ip = self.plumber.resolve(name);
         Some(ip)
     }
