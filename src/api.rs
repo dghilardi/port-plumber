@@ -7,8 +7,9 @@ use axum::extract::{State};
 use axum::routing::{get, IntoMakeService};
 use hyperlocal::{SocketIncoming, UnixServerExt};
 use crate::plumber::Plumber;
+use crate::resolver::NameResolver;
 
-pub fn build_server(path: impl AsRef<Path>, plumber: Plumber) -> anyhow::Result<Server<SocketIncoming, IntoMakeService<Router>>> {
+pub fn build_server(path: impl AsRef<Path>, name_resolver: NameResolver) -> anyhow::Result<Server<SocketIncoming, IntoMakeService<Router>>> {
     if path.as_ref().exists() {
         fs::remove_file(path.as_ref())
             .context("Could not remove old socket!")?;
@@ -17,7 +18,7 @@ pub fn build_server(path: impl AsRef<Path>, plumber: Plumber) -> anyhow::Result<
     let app = Router::new()
         .route("/list", get(list_endpoints))
         .route("/resolve/:name", get(resolve_endpoint))
-        .with_state(plumber);
+        .with_state(name_resolver);
 
     let srv = axum::Server::bind_unix(path)?
         .serve(app.into_make_service());
@@ -36,9 +37,9 @@ async fn list_endpoints() -> Json<Vec<Endpoint>> {
 
 async fn resolve_endpoint(
     axum::extract::Path(name): axum::extract::Path<String>,
-    State(state): State<Plumber>
+    State(state): State<NameResolver>
 ) -> Json<Endpoint> {
-    let ip = state.resolve(&name);
+    let ip = state.resolve(&name).unwrap();
     Json(Endpoint {
         ip,
     })
