@@ -1,0 +1,44 @@
+# Maintainer: Davide Ghilardi (dghila@d71.dev)
+pkgname=port-plumber-git
+_pkgname=port-plumber
+pkgver=0.2.1.r0.0de3e99
+pkgrel=1
+pkgdesc="Lazy port binding"
+url="https://github.com/dghilardi/port-plumber"
+_git="https://github.com/dghilardi/${_pkgname}"
+arch=(x86_64)
+makedepends=('cargo')
+depends=('git')
+provides=('port-plumber')
+conflicts=('port-plumber-bin')
+source=("${_pkgname}::git+${_git}")
+sha256sums=('SKIP')
+
+_bin="port-plumber"
+_bin_cli="pluctl"
+_lib_path="/usr/lib/${_pkgname}"
+_rt_path="${_lib_path}/runtime"
+
+
+pkgver() {
+    cd "${_pkgname}"
+    printf "%s.r%s.%s" "$(git describe --tags --abbrev=0)" "$(git rev-list --count $(git describe --tags --abbrev=0)..HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+	cd "${_pkgname}"
+	cargo build --release
+}
+
+check() {
+	cd "${_pkgname}"
+	# cargo test --all-features
+}
+
+package() {
+	cd "${_pkgname}"
+	mkdir -p "${pkgdir}${_lib_path}"
+	install -Dm 0644 "LICENSE.md" "${pkgdir}/usr/share/licenses/${_pkgname}/LICENSE"
+	install -Dm 0777 "target/release/${_bin}" "${pkgdir}/usr/bin/${_bin}"
+    install -Dm 0777 "target/release/${_bin_cli}" "${pkgdir}/usr/bin/${_bin_cli}"
+}
