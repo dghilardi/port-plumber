@@ -22,6 +22,7 @@ impl CmdRunner {
     }
 
     pub fn start(&mut self) -> Result<()> {
+        log::debug!("Starting command {:?} with args {:?}", self.command.get_program(), self.command.get_args().collect::<Vec<_>>());
         let process = self.command.spawn()?;
         self.process = Some(process);
         Ok(())
