@@ -38,9 +38,9 @@ async fn list_endpoints() -> Json<Vec<Endpoint>> {
 async fn resolve_endpoint(
     axum::extract::Path(name): axum::extract::Path<String>,
     State(state): State<NameResolver>
-) -> Json<Endpoint> {
-    let ip = state.resolve(&name).unwrap();
-    Json(Endpoint {
-        ip,
-    })
+) -> Json<Option<Endpoint>> {
+    let res = state.resolve(&name)
+        .map(|ip| Endpoint { ip });
+
+    Json(res)
 }

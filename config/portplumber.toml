@@ -10,8 +10,9 @@ sockets.23456.target = "127.0.0.1:2048"
 sockets.23456.resource.setup = { command = "http-server", args = ["-h", "127.0.0.1", "-p", "2048", "-v"] }
 sockets.23456.resource.warmup_millis = 5000
 
-[plumbing."preprod.svc.lo"]
+[plumbing."http.lo"]
 mode = "Name"
 sockets.8080.source = 8080
 sockets.8080.target = 8080
-sockets.8080.resource.setup = { command = "echo", args = ["{{url.parts.3}}: {{source.ip}} -> {{target.ip}}"] }
+sockets.8080.resource.warmup_millis = 500
+sockets.8080.resource.setup = { command = "bash", args = ["-xc", "mkdir -p /tmp/{{url.parts.2}} && http-server -h {{target.ip}} -p 8080 -v /tmp/{{url.parts.2}}"] }

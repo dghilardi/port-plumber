@@ -19,8 +19,10 @@ async fn main() -> anyhow::Result<()> {
             println!("{res:?}");
         },
         Commands::Resolve { name } => {
-            let res: Endpoint = client.get(Uri::new(args.path, &format!("/resolve/{name}"))).await?;
-            println!("{}", res.ip);
+            let opt_res: Option<Endpoint> = client.get(Uri::new(args.path, &format!("/resolve/{name}"))).await?;
+            if let Some(res) = opt_res {
+                println!("{}", res.ip);
+            }
         }
     }
     Ok(())
