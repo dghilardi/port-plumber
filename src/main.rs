@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::fs;
 use std::future::Future;
@@ -16,9 +17,10 @@ use crate::api::build_server;
 
 use crate::args::PortPlumberArgs;
 use crate::cmd_resource::CmdResource;
-use crate::config::{PlumbingItemConfig, PortPlumberConfig};
+use crate::config::{NamePlumbingConfig, PlumbingItemConfig, PortPlumberConfig, SocketConf};
 use crate::connections_counter::ConnectionCounter;
 use crate::plumber::{Plumber, PlumbingDescriptor};
+use crate::resolver::NameResolver;
 
 mod config;
 mod utils;
@@ -29,6 +31,7 @@ mod connections_counter;
 mod api;
 mod plumber;
 mod ext;
+mod resolver;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -48,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
 
 
     let plumber = Plumber::new();
+    let mut resolv_conf: BTreeMap<String, SocketConf<NamePlumbingConfig>> = BTreeMap::new();
 
     for (name, plumbing) in config.plumbing {
         match plumbing {
@@ -63,13 +67,17 @@ async fn main() -> anyhow::Result<()> {
                     })?;
                 }
             }
-            PlumbingItemConfig::Name(conf) => {}
+            PlumbingItemConfig::Name(conf) => {
+                resolv_conf.insert(name, conf);
+            },
         }
     }
 
+    let name_resolver = NameResolver::new(resolv_conf, plumber.clone());
+
     if let Some(ref socket) = config.socket {
         log::debug!("Starting socket server");
-        let server = build_server(socket, plumber.clone())
+        let server = build_server(socket, name_resolver)
             .context("Error building server")?;
         tokio::spawn(async move {
             let out = server.await;

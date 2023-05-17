@@ -19,7 +19,7 @@ pub enum PlumbingItemConfig {
     Name(SocketConf<NamePlumbingConfig>),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct SocketConf<T> {
     pub sockets: BTreeMap<String, T>
 }
@@ -31,14 +31,14 @@ pub struct AddrPlumbingConfig {
     pub resource: Option<ResourceConfig>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct NamePlumbingConfig {
     pub source: u16,
     pub target: u16,
     pub resource: ResourceConfig,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ResourceConfig {
     #[serde(deserialize_with = "string_or_struct")]
     pub setup: CommandConfig,
@@ -46,7 +46,7 @@ pub struct ResourceConfig {
     pub warmup_millis: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct CommandConfig {
     pub command: String,
     #[serde(default)]
