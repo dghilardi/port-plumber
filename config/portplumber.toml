@@ -14,4 +14,4 @@ sockets.23456.resource.warmup_millis = 5000
 mode = "Name"
 sockets.8080.source = 8080
 sockets.8080.target = 8080
-sockets.8080.resource.setup = { command = "echo", args = ["{{url.parts.3}}"] }
+sockets.8080.resource.setup = { command = "echo", args = ["{{url.parts.3}}: {{source.ip}} -> {{target.ip}}"] }

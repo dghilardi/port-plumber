@@ -1,12 +1,31 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::net::IpAddr;
-use crate::config::{NamePlumbingConfig, SocketConf};
-use crate::plumber::Plumber;
+use crate::config::{NamePlumbingConfig, ResourceConfig, SocketConf};
+use crate::plumber::{Plumber, PlumbingDescriptor};
+use serde::Serialize;
 
 #[derive(Clone)]
 pub struct NameResolver {
     config: BTreeMap<String, SocketConf<NamePlumbingConfig>>,
     plumber: Plumber,
+}
+
+#[derive(Serialize)]
+pub struct TemplateParams {
+    source: EndpointParam,
+    target: EndpointParam,
+    url: UrlParam,
+}
+
+#[derive(Serialize)]
+pub struct UrlParam {
+    full: String,
+    parts: HashMap<usize, String>,
+}
+
+#[derive(Serialize)]
+pub struct EndpointParam {
+    ip: IpAddr,
 }
 
 impl NameResolver {
@@ -25,11 +44,41 @@ impl NameResolver {
             return None;
         };
 
-        for conf in &socket_conf.sockets {
-
+        let binding = self.plumber.resolve(name);
+        for (_, conf) in &socket_conf.sockets {
+            let setup = match conf.resource.setup.render_template(&TemplateParams {
+                source: EndpointParam { ip: binding.source },
+                target: EndpointParam { ip: binding.target },
+                url: UrlParam {
+                    full: String::from(name),
+                    parts: name.split('.')
+                        .rev()
+                        .enumerate()
+                        .map(|(idx, s)| (idx, String::from(s)))
+                        .collect(),
+                },
+            }) {
+                Ok(setup) => setup,
+                Err(err) => {
+                    log::error!("Error rendering configuration template - {err}");
+                    continue
+                }
+            };
+            let out = self.plumber.attach(name, PlumbingDescriptor {
+                in_addr: None,
+                in_port: conf.source,
+                out_addr: None,
+                out_port: conf.target,
+                resource: Some(ResourceConfig {
+                    warmup_millis: conf.resource.warmup_millis,
+                    setup,
+                }),
+            });
+            if let Err(err) = out {
+                log::error!("Error binding address - {err}");
+            }
         }
 
-        let ip = self.plumber.resolve(name);
-        Some(ip)
+        Some(binding.source)
     }
 }
