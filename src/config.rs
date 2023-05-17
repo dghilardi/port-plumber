@@ -3,7 +3,8 @@ use std::convert::Infallible;
 use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
-use serde::Deserialize;
+use handlebars::Handlebars;
+use serde::{Deserialize, Serialize};
 use crate::utils::serde::string_or_struct;
 
 #[derive(Deserialize)]
@@ -53,6 +54,23 @@ pub struct CommandConfig {
     pub args: Vec<String>,
     #[serde(default = "std::env::temp_dir")]
     pub workingdir: PathBuf,
+}
+
+impl CommandConfig {
+    pub fn render_template<T: Serialize>(&self, data: &T) -> anyhow::Result<Self> {
+        let h = Handlebars::new();
+        Ok(Self {
+            command: h.render_template(&self.command, data)?,
+            args: self.args.iter()
+                .map(|arg| h.render_template(arg, data))
+                .collect::<Result<Vec<_>, _>>()?,
+            workingdir: self.workingdir.to_str()
+                .map(|workdir| h.render_template(workdir, data))
+                .transpose()?
+                .map(PathBuf::from)
+                .unwrap_or_else(std::env::temp_dir),
+        })
+    }
 }
 
 impl FromStr for CommandConfig {

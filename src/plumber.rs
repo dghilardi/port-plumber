@@ -35,6 +35,11 @@ struct MappedSocket {
     handle: JoinHandle<()>,
 }
 
+pub struct AddressBinding {
+    pub source: IpAddr,
+    pub target: IpAddr
+}
+
 pub struct PlumbingDescriptor {
     pub in_addr: Option<IpAddr>,
     pub in_port: u16,
@@ -52,9 +57,12 @@ impl Plumber {
         }
     }
 
-    pub fn resolve(&self, name: &str) -> IpAddr {
+    pub fn resolve(&self, name: &str) -> AddressBinding {
         let entry = self.resolve_plumbing(name, None, None);
-        entry.in_addr
+        AddressBinding {
+            source: entry.in_addr,
+            target: entry.out_addr,
+        }
     }
 
     fn resolve_plumbing(&self, name: &str, in_addr: Option<IpAddr>, out_addr: Option<IpAddr>) -> dashmap::mapref::one::RefMut<String, Plumbing> {
