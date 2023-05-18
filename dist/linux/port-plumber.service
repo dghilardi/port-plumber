@@ -1,0 +1,11 @@
+[Unit]
+Description=Launch port-plumber
+
+[Service]
+Type=simple
+ExecStart=port-plumber
+RuntimeDirectory=port-plumber
+Environment=RUST_LOG=DEBUG
+Environment=CMD_SOCKET=%t/cmd.sock
+[Install]
+WantedBy=default.target

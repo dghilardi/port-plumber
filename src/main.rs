@@ -75,7 +75,13 @@ async fn main() -> anyhow::Result<()> {
 
     let name_resolver = NameResolver::new(resolv_conf, plumber.clone());
 
-    if let Some(ref socket) = config.socket {
+    let cmd_path = std::env::var("CMD_SOCKET")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .or(config.socket);
+
+    if let Some(ref socket) =  cmd_path {
         log::debug!("Starting socket server");
         let server = build_server(socket, name_resolver)
             .context("Error building server")?;

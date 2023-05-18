@@ -39,6 +39,7 @@ package() {
 	cd "${_pkgname}"
 	mkdir -p "${pkgdir}${_lib_path}"
 	install -Dm 0644 "LICENSE.md" "${pkgdir}/usr/share/licenses/${_pkgname}/LICENSE"
+    install -Dm 0644 "dist/linux/port-plumber.service" "${pkgdir}/usr/lib/systemd/user/port-plumber.service"
 	install -Dm 0777 "target/release/${_bin}" "${pkgdir}/usr/bin/${_bin}"
     install -Dm 0777 "target/release/${_bin_cli}" "${pkgdir}/usr/bin/${_bin_cli}"
 }
