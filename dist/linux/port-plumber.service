@@ -6,6 +6,6 @@ Type=simple
 ExecStart=port-plumber
 RuntimeDirectory=port-plumber
 Environment=RUST_LOG=DEBUG
-Environment=CMD_SOCKET=%t/cmd.sock
+Environment=CMD_SOCKET=%t/port-plumber/cmd.sock
 [Install]
 WantedBy=default.target
