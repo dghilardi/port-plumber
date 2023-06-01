@@ -1,4 +1,6 @@
 # Port Plumber
+[![Test Status](https://github.com/dghilardi/port-plumber/workflows/Tests/badge.svg?event=push)](https://github.com/dghilardi/port-plumber/actions)
+[![Crate](https://img.shields.io/crates/v/port-plumber.svg)](https://crates.io/crates/port-plumber)
 
 Utility bind ports with initialization commands
 
