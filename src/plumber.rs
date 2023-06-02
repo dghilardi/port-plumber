@@ -75,23 +75,27 @@ impl Plumber {
             })
     }
 
-    pub fn attach(&self, name: &str, plumbing: PlumbingDescriptor) -> anyhow::Result<()> {
-        let mut entry = self.resolve_plumbing(name, plumbing.in_addr, plumbing.out_addr);
-        if let Some(plumbing) = entry.sockets.iter().find(|s| s.in_port == plumbing.in_port) {
+    pub fn attach(&self, name: &str, descriptor: PlumbingDescriptor) -> anyhow::Result<()> {
+        let mut entry = self.resolve_plumbing(name, descriptor.in_addr, descriptor.out_addr);
+        if let Some(plumbing) = entry.sockets.iter().find(|s| s.in_port == descriptor.in_port) {
             log::debug!("Plumbing already defined for {}:{} to {}:{}", entry.in_addr, plumbing.in_port, entry.out_addr, plumbing.out_port)
         } else {
-            let source_socket = SocketAddr::new(entry.in_addr, plumbing.in_port);
-            let target_socket = SocketAddr::new(entry.out_addr, plumbing.out_port);
-            log::debug!("{}:{} -> {}:{}", entry.value().in_addr, plumbing.in_port, entry.value().out_addr, plumbing.out_port);
+            let source_socket = SocketAddr::new(entry.in_addr, descriptor.in_port);
+
+            let out_addr = descriptor.out_addr.unwrap_or(entry.out_addr);
+            let target_socket = SocketAddr::new(out_addr, descriptor.out_port);
+
+            log::debug!("{}:{} -> {}:{}", entry.value().in_addr, descriptor.in_port, out_addr, descriptor.out_port);
+
             let handle = tokio::spawn(async move {
-                let out = listen_address(source_socket, target_socket, plumbing.resource).await;
+                let out = listen_address(source_socket, target_socket, descriptor.resource).await;
                 if let Err(err) = out {
                     log::error!("Error listening address {source_socket}")
                 }
             });
             entry.sockets.push(MappedSocket {
-                in_port: plumbing.in_port,
-                out_port: plumbing.out_port,
+                in_port: descriptor.in_port,
+                out_port: descriptor.out_port,
                 handle,
             })
         }
