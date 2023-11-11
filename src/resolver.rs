@@ -1,8 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 use std::net::IpAddr;
+
+use serde::Serialize;
+
 use crate::config::{NamePlumbingConfig, ResourceConfig, SocketConf};
 use crate::plumber::{Plumber, PlumbingDescriptor};
-use serde::Serialize;
 
 #[derive(Clone)]
 pub struct NameResolver {
@@ -72,6 +74,7 @@ impl NameResolver {
                 resource: Some(ResourceConfig {
                     warmup_millis: conf.resource.warmup_millis,
                     setup,
+                    healthcheck_cmd: conf.resource.healthcheck_cmd.clone(),
                 }),
             });
             if let Err(err) = out {

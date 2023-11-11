@@ -39,15 +39,25 @@ pub struct NamePlumbingConfig {
     pub resource: ResourceConfig,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct ResourceConfig {
     #[serde(deserialize_with = "string_or_struct")]
     pub setup: CommandConfig,
     #[serde(default)]
     pub warmup_millis: u64,
+    #[serde(default)]
+    pub healthcheck_cmd: Option<HealthcheckCmdConfig>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct HealthcheckCmdConfig {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    pub timeout_millis: u64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct CommandConfig {
     pub command: String,
     #[serde(default)]

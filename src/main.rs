@@ -32,6 +32,7 @@ mod api;
 mod plumber;
 mod ext;
 mod resolver;
+mod healthcheck;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -82,10 +83,12 @@ async fn main() -> anyhow::Result<()> {
         .or(config.socket);
 
     if let Some(ref socket) =  cmd_path {
-        log::debug!("Starting socket server");
+        log::debug!("Starting socket server {socket:?}");
         let server = build_server(socket, name_resolver)
             .context("Error building server")?;
+        log::debug!("Socket server built");
         tokio::spawn(async move {
+            log::debug!("Spawning socket server");
             let out = server.await;
             if let Err(err) = out {
                 log::error!("Error during socket server execution - {err}");

@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, Output, Stdio};
 
 use anyhow::Result;
 
@@ -26,6 +26,12 @@ impl CmdRunner {
         let process = self.command.spawn()?;
         self.process = Some(process);
         Ok(())
+    }
+
+    pub fn run(&mut self) -> Result<Output> {
+        log::debug!("Starting command {:?} with args {:?}", self.command.get_program(), self.command.get_args().collect::<Vec<_>>());
+        let out = self.command.output()?;
+        Ok(out)
     }
 
     pub fn stop(&mut self) -> Result<()> {

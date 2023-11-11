@@ -1,10 +1,10 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::ops::Add;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 
 use dashmap::DashMap;
 use dashmap::mapref::multiple::RefMulti;
@@ -40,6 +40,7 @@ pub struct AddressBinding {
     pub target: IpAddr
 }
 
+#[derive(Debug)]
 pub struct PlumbingDescriptor {
     pub in_addr: Option<IpAddr>,
     pub in_port: u16,
@@ -75,8 +76,11 @@ impl Plumber {
             })
     }
 
+
     pub fn attach(&self, name: &str, descriptor: PlumbingDescriptor) -> anyhow::Result<()> {
+        log::debug!("attach: {descriptor:?}");
         let mut entry = self.resolve_plumbing(name, descriptor.in_addr, descriptor.out_addr);
+        log::debug!("entry: {} -> {}", entry.in_addr, entry.out_addr);
         if let Some(plumbing) = entry.sockets.iter().find(|s| s.in_port == descriptor.in_port) {
             log::debug!("Plumbing already defined for {}:{} to {}:{}", entry.in_addr, plumbing.in_port, entry.out_addr, plumbing.out_port)
         } else {
@@ -146,6 +150,7 @@ async fn listen_address(source: SocketAddr, target:SocketAddr, resource: Option<
         resource.ensure_running().await?;
         let cloned_counter_mtx = counter.clone();
         tokio::spawn(async move {
+            log::debug!("SOURCE: {source} TARGET: {target}");
             let res = redirect_stream(stream, target).await;
             if let Err(err) = res {
                 log::error!("Error processing stream - {err}");
@@ -163,10 +168,13 @@ async fn timeout<F, O, E>(duration: Duration, future: F) -> Result<Option<O>, E>
     tokio::time::timeout(duration, future).await.ok().transpose()
 }
 
-async fn redirect_stream(incoming: TcpStream, addr: impl ToSocketAddrs) -> anyhow::Result<()> {
-    let outgoing = TcpStream::connect(addr).await?;
+async fn redirect_stream(incoming: TcpStream, addr: impl ToSocketAddrs + Copy + Debug) -> anyhow::Result<()> {
+    let outgoing = TcpStream::connect(addr).await
+        .with_context(|| format!("Error connecting to address {addr:?}"))?;
+
     let (mut in_reader, mut in_writer) = incoming.into_split();
     let (mut out_reader, mut out_writer) = outgoing.into_split();
+
     futures::future::try_select(
         Box::pin(tokio::io::copy(&mut in_reader, &mut out_writer)),
         Box::pin(tokio::io::copy(&mut out_reader, &mut in_writer)),
@@ -175,6 +183,7 @@ async fn redirect_stream(incoming: TcpStream, addr: impl ToSocketAddrs) -> anyho
         .map_err(|e| match e {
             Either::Left((err, _fut)) => err,
             Either::Right((err, _fut)) => err,
-        })?;
+        })
+        .context("Error during socket copy")?;
     Ok(())
 }
