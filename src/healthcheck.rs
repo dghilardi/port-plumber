@@ -1,5 +1,6 @@
 use std::ops::Add;
 use std::time::Duration;
+use anyhow::bail;
 use tokio::time::Instant;
 use crate::config::HealthcheckCmdConfig;
 use crate::runner::CmdRunner;
@@ -26,7 +27,6 @@ impl HealthcheckCommand {
         }
 
         intervals.into_iter()
-            .rev()
             .map(|interval_millis| Instant::now().add(Duration::from_millis(interval_millis)))
             .collect()
     }
@@ -35,7 +35,10 @@ impl HealthcheckCommand {
         while !self.command.run()?.status.success() {
             intervals.retain(|instant| instant > &Instant::now());
             if let Some(instant) = intervals.pop() {
+                log::debug!("Waiting until {instant:?}");
                 tokio::time::sleep_until(instant).await;
+            } else {
+                bail!("Command not ready")
             }
         }
         Ok(())

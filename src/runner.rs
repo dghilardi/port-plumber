@@ -29,7 +29,7 @@ impl CmdRunner {
     }
 
     pub fn run(&mut self) -> Result<Output> {
-        log::debug!("Starting command {:?} with args {:?}", self.command.get_program(), self.command.get_args().collect::<Vec<_>>());
+        log::debug!("Running command {:?} with args {:?}", self.command.get_program(), self.command.get_args().collect::<Vec<_>>());
         let out = self.command.output()?;
         Ok(out)
     }
